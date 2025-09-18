@@ -1,0 +1,376 @@
+--[[
+https://www.roblox.com/games/8554378337/
+loadstring(game:HttpGet("https://www.scriptblox.com/raw/WFS-or-Autofarm_393")()
+--]]
+
+repeat wait() until game:IsLoaded()
+
+_G.autofarm = false
+_G.farmType = "Nearest"
+_G.autoCollect = false
+_G.autoGamble = false
+_G.autoBoss = false
+
+local bb = game:GetService("VirtualUser")
+local tickk = tick()
+local area = {}
+local bossArea = {}
+
+game:GetService("Players").LocalPlayer.Idled:Connect(function()
+    bb:CaptureController()
+    bb:ClickButton2(Vector2.new())
+end)
+
+table.insert(area,"-- 选择区域 --")
+for i, v in pairs(game:GetService("Workspace").Fight:GetChildren()) do
+    if string.find(v.Name,"FightArea") and not table.find(area,v.Name)then
+        table.insert(area,v.Name)
+    end
+end
+table.sort(area)
+
+table.insert(bossArea,"-- 选择区域 -- ")
+for i, v in pairs(game:GetService("Workspace").Fight:GetChildren()) do
+    if v:FindFirstChild("BossTeleports") and not table.find(bossArea,v.Name) then
+        table.insert(bossArea,v.Name)
+    end
+end
+table.sort(bossArea)
+
+if _G.AreaLoad then _G.AreaLoad:Disconnect() end
+_G.AreaLoad = game:GetService("Workspace").Fight.ChildAdded:Connect(function(asd)
+    if string.find(asd.Name,"FightArea") then
+        table.clear(area)
+        for i, v in pairs(game:GetService("Workspace").Fight:GetChildren()) do
+            if string.find(v.Name,"FightAre") and not table.find(area,v.Name)then
+                table.insert(area,v.Name)
+            end
+        end
+        table.sort(area)
+    end
+    if asd:FindFirstChild("BossTeleports") then
+        table.clear(bossArea)
+        table.insert(bossArea,"-- 选择区域 -- ")
+        for i, v in pairs(game:GetService("Workspace").Fight:GetChildren()) do
+            if v:FindFirstChild("BossTeleports") and not table.find(bossArea,v.Name)then
+                table.insert(bossArea,v.Name)
+            end
+        end
+        table.sort(bossArea)
+    end
+end)
+
+function getHighest()
+    local high = {}
+    for i, v in pairs(game:GetService("Workspace").Fight.Chests:GetChildren()) do
+        for x, y in pairs(game.Workspace.Fight[_G.selectedArea].Root:GetChildren()) do
+            if v.Name == y.Name then
+                table.insert(high,v.ChestHp.Value)
+                table.sort(high, function(a,b) return a > b end)            
+            end
+        end
+    end
+
+    for a, b in pairs(game:GetService("Workspace").Fight.Chests:GetChildren()) do
+        for x, y in pairs(game.Workspace.Fight[_G.selectedArea].Root:GetChildren()) do
+            if b.Name == y.Name and high[1] == b.ChestHp.Value then
+                return b.Name
+            end
+        end
+    end    
+end
+
+function getMid()
+    local mid = {}
+    for i, v in pairs(game:GetService("Workspace").Fight.Chests:GetChildren()) do
+        for x, y in pairs(game.Workspace.Fight[_G.selectedArea].Root:GetChildren()) do
+            if v.Name == y.Name then
+                table.insert(mid,v.ChestHp.Value)
+                table.sort(mid, function(a,b) return a < b end)            
+            end
+        end
+    end
+
+    for a, b in pairs(game:GetService("Workspace").Fight.Chests:GetChildren()) do
+        for x, y in pairs(game.Workspace.Fight[_G.selectedArea].Root:GetChildren()) do
+            if b.Name == y.Name and mid[tonumber(string.format("%.g",#mid/2))] == b.ChestHp.Value then
+                return b.Name
+            end
+        end
+    end  
+end
+
+function getLowest()
+    local low = {}
+    for i, v in pairs(game:GetService("Workspace").Fight.Chests:GetChildren()) do
+        for x, y in pairs(game.Workspace.Fight[_G.selectedArea].Root:GetChildren()) do
+            if v.Name == y.Name then
+                table.insert(low,v.ChestHp.Value)
+                table.sort(low, function(a,b) return a < b end)            
+            end
+        end
+    end
+
+    for a, b in pairs(game:GetService("Workspace").Fight.Chests:GetChildren()) do
+        for x, y in pairs(game.Workspace.Fight[_G.selectedArea].Root:GetChildren()) do
+            if b.Name == y.Name and low[1] == b.ChestHp.Value then
+                return b.Name
+            end
+        end
+    end  
+end
+
+function getNear()
+    local near;
+    local nearr = math.huge
+    local plr = game.Players.LocalPlayer.Character.HumanoidRootPart
+
+    for i, v in pairs(game:GetService("Workspace").Fight.ClientChests:GetChildren()) do
+        if (plr.Position - v.Root.Position).Magnitude < nearr then
+            near = v
+            nearr = (plr.Position - v.Root.Position).Magnitude
+        end
+    end
+
+    return near
+end
+
+function getQiChest()
+    for i, v in pairs(game:GetService("Workspace").Fight.Chests:GetChildren()) do
+        for x, y in pairs(game.Workspace.Fight[_G.selectedArea].Root:GetChildren()) do
+            if v.Name == y.Name and string.find(v.Value,"ChestBaoXiang") then
+                return v.Name
+            end
+        end
+    end
+end
+
+local alive = true
+
+if _G.checkAlive then _G.checkAlive:Disconnect() end
+_G.checkAlive = game.Players.LocalPlayer.Character:WaitForChild("Humanoid").Died:Connect(function()
+    alive = false print(alive) wait(6) alive = true print(alive)
+    game.Players.LocalPlayer.CharacterAdded:Connect(function(a)
+        a:WaitForChild("Humanoid").Died:Connect(function()
+            alive = false wait(6) alive = true
+        end)
+    end)
+end)
+
+function teleport(part)
+    local player = game.Players.LocalPlayer.Character.HumanoidRootPart
+    player.CFrame = part.CFrame * CFrame.new(0,2,5)
+end
+
+function MoveTo(enemy)
+    game.Players.LocalPlayer.Character.Humanoid:MoveTo(enemy.Position)
+end
+
+function hrt()
+    local lol = game.Players.LocalPlayer.Character.HumanoidRootPart
+    return lol
+end
+
+function sendKey(key)
+    game:GetService('VirtualInputManager'):SendKeyEvent(true, key, false, game) wait()
+    game:GetService('VirtualInputManager'):SendKeyEvent(false, key, false, game)
+end
+
+local library = loadstring(game:HttpGet("https://pastebin.com/raw/Uz6HijUN", true))()
+local w = library:CreateWindow("耕作")
+local a = library:CreateWindow("赌博")
+local c = library:CreateWindow("老板")
+local b = library:CreateWindow("杂项")
+
+w:Toggle("启用", {flag = "a"}, function(value)
+    _G.autofarm = value
+    
+    task.spawn(function()
+        while task.wait() do
+            if not _G.autofarm then break end
+            pcall(function()
+                local tickk = tick()
+                if alive == true then
+                    if _G.farmType == "最近" then
+                        local nearest = getNear()
+
+                        if (hrt().Position - nearest.Root.Position).Magnitude < 50 then
+                            MoveTo(nearest.Root)
+                        else 
+                            teleport(nearest.Root)
+                        end
+
+                        wait(.5)
+                        fireclickdetector(nearest.Root.ClickDetector,69)  
+                        repeat task.wait() 
+                            MoveTo(nearest.Root)
+                        until nearest.Root == nil or not _G.autofarm or alive == false or tick()-tickk > 45
+                    elseif _G.farmType == "高Hp" then
+                        local highest = getHighest()
+                        local highestChest = game:GetService("Workspace").Fight.ClientChests[highest].Root
+                        
+                        if (hrt().Position - highestChest.Position).Magnitude < 50 then
+                            MoveTo(highestChest)
+                        else
+                            teleport(highestChest)
+                        end
+
+                        wait(.5)
+                        fireclickdetector(highestChest.ClickDetector,69)
+                        repeat task.wait()
+                            MoveTo(highestChest)
+                        until not game:GetService("Workspace").Fight.ClientChests[highest].Root or not _G.autofarm or alive == false or tick()-tickk > 45
+                    elseif _G.farmType == "中功率" then
+                        local mid = getMid()
+                        local midChest = game:GetService("Workspace").Fight.ClientChests[mid].Root
+
+                        if (hrt().Position - midChest.Position).Magnitude < 50 then
+                            MoveTo(midChest)
+                        else 
+                            teleport(midChest)
+                        end
+
+                        wait(.5)
+                        fireclickdetector(midChest.ClickDetector,69)
+                        repeat task.wait()
+                            MoveTo(midChest)
+                        until not game:GetService("Workspace").Fight.ClientChests[mid].Root or not _G.autofarm or alive == false or tick()-tickk > 45
+                    elseif _G.farmType == "低Hp" then
+                        local lowest = getLowest()
+                        local lowestChest = game:GetService("Workspace").Fight.ClientChests[lowest].Root
+
+                        if (hrt().Position - lowestChest.Position).Magnitude < 50 then
+                            MoveTo(lowestChest)
+                        else 
+                            teleport(lowestChest)
+                        end
+
+                        wait(.5)
+                        fireclickdetector(lowestChest.ClickDetector,69)
+                        repeat task.wait() 
+                            MoveTo(lowestChest)
+                        until not game:GetService("Workspace").Fight.ClientChests[lowest].Root or not _G.autofarm or alive == false or tick()-tickk > 45
+                    elseif _G.farmType == "气胸" then
+                        local qiChest = getQiChest()
+                        local chest = game:GetService("Workspace").Fight.ClientChests[qiChest].Root
+
+                        if (hrt().Position - chest.Position).Magnitude < 50 then
+                            MoveTo(chest)
+                        else 
+                            teleport(chest)
+                        end
+
+                        wait(.5)
+                        fireclickdetector(chest.ClickDetector,69)
+                        repeat task.wait()
+                            MoveTo(chest)
+                        until not game:GetService("Workspace").Fight.ClientChests[qiChest].Root or not _G.autofarm or alive == false or tick()-tickk > 45
+                    end
+                end
+            end)
+        end
+    end)
+end)
+
+w:Dropdown("Farm Type", {flag = "b" ,list = {"Nearest","高Hp","中功率","低Hp","气胸"}}, function(v)
+    _G.farmType = v
+end)
+
+w:Dropdown("选择区域", {flag = "c", list = area}, function(v)
+    _G.selectedArea = v
+end)
+
+w:Toggle("收集奖励", {flag = "d"}, function(value)
+    _G.autoCollect = value
+
+    local d = require(game:GetService("ReplicatedStorage").CommonConfig.CfgGlobal)
+    
+    if _G.autoCollect then
+        d.RewardCollectRadius = 9e99
+    else 
+        d.RewardCollectRadius = 12
+    end
+end)
+
+a:Toggle("启用", {flag = "ad"}, function(v)
+    _G.autoGamble = v
+
+    task.spawn(function()
+        while task.wait() do
+            if not _G.autoGamble then break end
+            for i, v in pairs(game.Workspace.Fight[_G.areatoGamble].Gamble:GetChildren()) do
+                if v:IsA("Part") then
+                    teleport(v)
+                    sendKey("E")
+                end
+            end
+        end
+    end)
+end)
+
+a:Dropdown("选择区域", {flag = "zad", list = area}, function(v)
+    _G.areatoGamble = v
+end)
+
+c:Toggle("启用", { flag = "e",}, function(value)
+    _G.autoBoss = value
+
+    task.spawn(function()
+        while task.wait() do
+            if not _G.autoBoss then break end
+            pcall(function()
+                local tickk = tick()
+                wait(1)
+                game:GetService("ReplicatedStorage").CommonLibrary.Tool.RemoteManager.Funcs.DataPullFunc:InvokeServer("ArenaTeleportLeaveChannel", "Out")   
+                wait(1)
+                teleport(game:GetService("Workspace").Fight[_G.selectedBossArea].BossTeleports.Platform.Platform)
+                wait(1)
+                game:GetService("ReplicatedStorage").CommonLibrary.Tool.RemoteManager.Events.BossRoomStartEvent:FireServer("room1")                    
+                game:GetService("ReplicatedStorage").CommonLibrary.Tool.RemoteManager.Events.BossRoomStartEvent:FireServer("room2") 
+                wait(1)                    
+                local near = getNear()
+                teleport(near.Root)
+                wait(.5)
+                fireclickdetector(near.Root.ClickDetector,69)
+                repeat task.wait() 
+                    teleport(near.Root)
+                until not near.Root or not _G.autoBoss or alive == false or tick()-tickk > 69
+            end)
+        end
+    end)
+end)
+
+c:Dropdown("选择区域", { flag = "f", list = bossArea}, function(v)
+    _G.selectedBossArea = v
+end)
+
+b:Button("解锁游戏通行证", function()
+    local a = require(game:GetService("ReplicatedStorage").CommonLogic.Model.GamePasses)
+    a.HasGamePass = function() return true end
+
+    game:GetService("Players").LocalPlayer.PlayerGui.MainGui.ScreenGui.MainLeftBarView.FrameChild4.BgTeleport.ImgMask.Visible = false
+end)
+
+b:Button("隐身", function()
+    pcall(function()
+        for i, v in pairs(game.Players.LocalPlayer.Character:GetChildren()) do
+            if v:IsA("MeshPart") and v.Name ~= "Head" and v.Name ~= "LowerTorso" and v.Name ~= "UpperTorso" then
+                v:Destroy()
+            end
+        end
+        game.Players.LocalPlayer.Character.Humanoid.Animator:Destroy() wait(1)
+        game.Players.LocalPlayer.Character.LowerTorso.Root:Destroy()
+        game.Players.LocalPlayer.Character.NameTag:Destroy() 
+    end)
+end)
+
+b:Button("重新加载脚本", function()
+    loadstring(game:HttpGet("https://pastebin.com/raw/Bd6R0GaC"))()
+end)
+
+b:Section("流脚本汉化")
+
+b:Button("Q群：1063622723", function()
+end)
+
+warn("script took",string.format("%.0f",tick()-tickk),"seconds to load")
